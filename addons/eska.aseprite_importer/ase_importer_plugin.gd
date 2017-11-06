@@ -47,7 +47,7 @@ const WARNMSG_ANIMATION_EXPORT_STRF=\
 Enable "Meta: Frame Tags" in Aseprite's "Export Sprite Sheet" dialog to export frame tags as animations"""
 
 
-const PLUGIN_NAME = "eska.ase_importer"
+const PLUGIN_NAME = "eska.aseprite_importer"
 
 func get_importer_name():
 	return PLUGIN_NAME
