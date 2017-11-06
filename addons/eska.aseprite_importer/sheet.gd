@@ -99,11 +99,11 @@ func get_format():
 	return _format
 
 func parse_json( json ):
-	var error = _dict.parse_json( json )
-	if error != OK:
+	_dict = parse_json( json )
+	if typeof(_dict) != TYPE_DICTIONARY:
 		_error_message = ERRMSG_INVALID_JSON
-		return error
-	error = _initialize()
+		return FAILED
+	var error = _initialize()
 	return error
 
 func _initialize():
@@ -169,7 +169,7 @@ func _parse_frames_dict( frames ):
 	ordered_frames.resize( frames.size() )
 	for key in frames:
 		# `file 0.ase` => `file 0` => `0`
-		var index = key.basename().split(' ')
+		var index = key.get_basename().split(' ')
 		index = index[index.size()-1]
 		if not index.is_valid_integer():
 			_error_message = ERRMSG_INVALID_KEY_STRF % key

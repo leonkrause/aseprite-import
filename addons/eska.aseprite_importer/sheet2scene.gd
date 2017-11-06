@@ -21,12 +21,9 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## \TODO try harder to find correct AnimationPlayer and Sprite nodes
-var delete_unused_imported_tracks = false
-
 tool
 
-const Sheet = preload('res://addons/aseprite-import/sheet.gd')
+const Sheet = preload('sheet.gd')
 
 const TRACK_PATH_REGION_RECT= ':region_rect'
 
@@ -38,29 +35,8 @@ var _error_message = "No error message available"
 func get_error_message():
 	return _error_message
 
-## \TODO no longer needed
-static func _inherit_properties( parent, child ):
-	for prop in parent.get_property_list():
-		if child.has( prop.name ):
-			child.set( prop.name, parent.get( prop.name ) )
-
-## \TODO no longer needed
-static func _adopt_children( parent, adopter ):
-	for child in parent.get_children():
-		parent.remove_child( child )
-		adopter.add_child( child )
-
 func _cleanup( scene ):
 	scene.call_deferred( 'free' )
-
-## \TODO no longer needed
-func get_parent_path_to( node ):
-	var root = node.get_parent()
-	if !root:
-		return node.get_name()
-	while root.get_parent():
-		root = root.get_parent()
-	return str( root.get_name(), '/', root.get_path_to( node ) )
 
 static func _stretch_animation_track( animation, track, length ):
 	if animation.get_length() == length: return
@@ -72,31 +48,38 @@ static func _stretch_animation_track( animation, track, length ):
 		time *= length / animation.get_length()
 		animation.track_insert_key( track, time, value, transition )
 
-func merge( sheet, texture, packed_scene, aggressive=false ):
-	assert( typeof(sheet) == TYPE_OBJECT and sheet extends Sheet )
-	assert( typeof(texture) == TYPE_OBJECT and texture extends Texture )
-	assert( typeof(packed_scene) == TYPE_OBJECT and packed_scene extends PackedScene )
+func merge( sheet, texture, packed_scene, post_script_path, autoplay_name, aggressive=false ):
+	assert( typeof(sheet) == TYPE_OBJECT and sheet is Sheet )
+	assert( typeof(texture) == TYPE_OBJECT and texture is Texture )
+	assert( typeof(packed_scene) == TYPE_OBJECT and packed_scene is PackedScene )
+	assert( typeof(post_script_path) == TYPE_STRING)
 	
 	var scene = null
 	var sprite = null
 	var player = null
+	
 	if packed_scene.can_instance():
 		scene = packed_scene.instance()
 		for child in scene.get_children():
-			if !sprite and child extends Sprite:
-				sprite = child
-			if !player and child extends AnimationPlayer:
-				player = child
-			if player and sprite: break
+			# Find and bind the correct sprite and animationplayer in the packed scene
+			if child.has_meta("_ase_imported"):
+				if !sprite and child is Sprite:
+					sprite = child
+				if !player and child is AnimationPlayer:
+					player = child
+			if player and sprite:
+				break
 	else:
 		scene = Node2D.new()
+		scene.set_meta("_ase_imported", true)
+	
 	if !sprite:
 		sprite = Sprite.new()
+		sprite.set_meta("_ase_imported", true)
 		scene.add_child( sprite, true )
-		sprite.set_owner( scene )
+	sprite.set_owner( scene )
 	
-	if sprite.get_texture() != texture:
-		sprite.set_texture( texture )
+	sprite.set_texture( texture )
 	sprite.set_region_rect( sheet.get_frame( 0 ).rect )
 	sprite.set_region( true )
 	
@@ -104,29 +87,35 @@ func merge( sheet, texture, packed_scene, aggressive=false ):
 	if sheet.is_animations_enabled():
 		if !player:
 			player = AnimationPlayer.new()
-			scene.add_child( player, true )
-			player.set_owner( scene )
+			player.set_meta("_ase_imported", true)
+			scene.add_child(player, true)
+		player.set_owner(scene)
+		
 		var track_path_sprite = player.get_node( player.get_root() ).get_path_to( sprite )
 		var track_path = str( track_path_sprite, TRACK_PATH_REGION_RECT )
-		if delete_unused_imported_tracks:
-			_remove_invalid_imported_animations( player, sheet.get_animation_names(), track_path )
 		error = _merge_animations( player, track_path, sheet, aggressive )
 		if error != OK:
 			_cleanup( scene )
 			return error
+		if player.has_animation( autoplay_name ):
+			player.set_autoplay( autoplay_name )
+		elif autoplay_name != "":
+			print("Sprite sheet has no animation ", autoplay_name, " to autoplay.")
+	
+	if post_script_path != "":
+		var post_script = load(post_script_path)
+		if !post_script is GDScript:
+			print(post_script_path, " is not a valid GDScript file.")
+		else:
+			post_script = post_script.new()
+			if !post_script.has_method("post_import"):
+				print(post_script_path, " has no method \"post_import\"")
+			else:
+				scene = post_script.post_import(scene)
 	
 	error = packed_scene.pack( scene )
 	_cleanup( scene )
 	return error
-
-func _remove_invalid_imported_animations( player, valid_anims, imported_track_path ):
-	for anim_name in player.get_animation_list():
-		if anim_name in valid_anims:
-			continue
-		var anim = player.get_animation( anim_name )
-		var imported_track_path = anim.find_track( imported_track_path )
-		if imported_track_path != -1 and anim.track_is_imported( imported_track_path ):
-			player.remove_animation( anim_name )
 
 func _merge_animations( player, track_path, sheet, aggressive ):
 	for anim_name in sheet.get_animation_names():
