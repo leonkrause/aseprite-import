@@ -14,7 +14,7 @@ retained.
 Requirements
 ============
 
- - **Godot Engine**:       at least version __2.1__
+ - **Godot Engine**:       at least version __3.0__
  - **Aseprite**:           at least version __1.0__
 	 - for **export GUI**: at least version __1.0.3__
 	 - for **animations**: at least version __1.1.2__
@@ -22,14 +22,14 @@ Requirements
 Installation
 ============
 
-To install the plug-in into a Godot Engine project, the `addons/aseprite-import`
+To install the plug-in into a Godot Engine project, the `addons/eska.aseprite-importer`
 directory must be moved into the project directory, so that the following
 hierarchy results:
 
  - `sample_project/`
-	- `engine.cfg`
+	- `project.godot`
 	- `addons/`
-		- `aseprite-import/`
+		- `eska.aseprite-importer/`
 			- `plugin.cfg`
 			-  *several other plug-in files*
 
@@ -43,9 +43,13 @@ To export a sprite sheet from Aseprite, use *File → Export Sprite Sheet*.
 Enable at least *Output File* and *JSON Data*. Enable *Meta: Frame Tags* to
 export animations.
 
+Animations need to be tagged for the plug-in to properly name them. To tag an
+animation, hold left-click and drag the mouse across the frames you wish to save
+as one animation, then right-click and choose *New Tag*. Name it and hit *OK*.
+
 It is recommended to save the texture file to the same directory as the
-JSON data file. That way, only the path of the JSON file needs to be specified
-during import in Godot Engine.
+JSON data file, with the same filename. That way, the path of the image file
+does not need to be specified during import in Godot Engine.
 
 After the first export, the settings dialog may be skipped by using
 *File → Repeat Last Export*.
@@ -57,29 +61,30 @@ as `Ctrl + Shift + X`.
 Importing into Godot Engine
 ---------------------------
 
-The *Aseprite import* plug-in is accessible from the *Import* button to the
-top-left of the editor. A dialog will open with three fields to specify the
-settings for the sprite sheet import.
+The *Aseprite import* plug-in integrates into Godot 3+'s built-in Import system.
+Simply drop your exported `.json` and sprite sheet `.png` image file inside your
+Godot project's directory and Godot will automatically import it while the
+plug-in is active.
 
-Aseprite sprite sheets consist of a texture and a JSON file containing metadata
-of the sprite sheet.
-
-In the first field, *Sprite sheet JSON*, use the button to the right to find
-and select the JSON data file. This file has a `.json` file extension.
-
-If the sprite sheet texture is located in the same directory as the JSON file,
-specifying its location is not necessary. Otherwise, specify the path to the
-file in next field, *Sprite sheet texture*.
-
-In the last field, *Scene*, choose where to save the resulting scene. This
-scene file must be saved in a binary format with the file extension `.scn` in
-order to save some metadata and the texture.
-
-Finally, click the *Import* button to begin the import and create the scene.
+If the sprite sheet image file doesn't have the same name and path as the `.json`
+file, you will need to click on your `.json` file in the *FileSystem* dock, open
+the *Import* dock and specify the texture location using the `Sheet Image` option
+and click on the *Reimport* button.
 
 After first importing the sprite sheet, the scene will be reimported
 automatically whenever the sprite sheet is changed and again exported from
 Aseprite.
+
+You can set a *post-script* file to manipulate the scene post-import by setting the
+`Post Script` import option to point at a `.gd` script file with a
+`post_import( scene_root )` method. That method will be given the scene's root
+`Node2d` as an argument and is expected to return the changed scene afterward.
+If you want to add any nodes to the scene at this point, keep in mind that it will
+only be saved if you call `set_owner( scene_root )` on each new node.
+
+The `Autoplay Animation` option lets you set the name of an animation to play as
+soon as the scene loads, which is useful since the scene can't be manually edited
+after importing.
 
 Warning
 =======
@@ -94,7 +99,7 @@ will always ignore and overwrite:
 License
 =======
 
-*BSD 2-clause ‘Simplified’ License*, read `LICENSE` file
+*BSD 2-clause ‘Simplified’ License*, read `LICENSE` file.
 
 Development
 ===========

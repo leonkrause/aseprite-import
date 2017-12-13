@@ -24,16 +24,23 @@
 tool
 extends EditorPlugin
 
-const Import = preload('res://addons/aseprite-import/import.gd')
-var _base_control
-var import
+var import_plugin = null
+
+func get_name():
+	return "Aseprite Spritesheet"
 
 func _enter_tree():
-	_base_control = Control.new()
-	get_base_control().add_child( _base_control )
-	import = Import.new( _base_control )
-	add_import_plugin( import )
+	_start()
 
 func _exit_tree():
-	_base_control.queue_free()
-	remove_import_plugin( import )
+	_stop()
+
+func _start():
+	if import_plugin == null:
+		import_plugin = preload('ase_importer_plugin.gd').new()
+		add_import_plugin(import_plugin)
+
+func _stop():
+	if import_plugin != null:
+		import_plugin = null
+		remove_import_plugin(import_plugin)
