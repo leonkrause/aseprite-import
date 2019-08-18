@@ -161,7 +161,7 @@ func _determine_format():
 func _parse_frames_dict( frames ):
 	if frames.size() == 1:
 		var old_name = frames.keys()[0]
-		var numbered_name = old_name.basename() + ' 0' + old_name.extension()
+		var numbered_name = old_name.get_basename() + ' 0.' + old_name.get_extension()
 		frames[numbered_name] = frames[old_name]
 		frames.erase( old_name )
 		
